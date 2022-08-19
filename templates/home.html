@@ -21,6 +21,7 @@
           {% else  %}
           <a class="btn btn-primary" href="/create">Listeni Yap</a>
           <a class="btn btn-danger mx-3" href="/logout">Çıkış Yap</a>
+          <a class="btn btn-secondary mx-3" href="/doviz">Dolar Kuru</a>
           {% endif %}
 
       </div>
@@ -32,7 +33,7 @@
         </div>
         <div class="card-body">
           <h5 class="card-text">{{ d.task }}</h5>
-          <p class="card-title"><b>KALAN SÜRE:</b><br><b>{{ d.howmanydays }}</b></p>
+          <p class="card-title"><b>Nekadar Süre Kaldı:</b><br><b>{{ d.howmanydays }}</b></p>
           <a href="/listelerim" class="btn btn-primary">Detayını Gör </a>
         </div>
       </div>

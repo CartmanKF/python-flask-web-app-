@@ -1,8 +1,25 @@
+from inspect import Parameter
+from math import radians
 from unicodedata import name
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
+import sqlite3
+import time
+import datetime as dt
+import matplotlib.animation as animation
+import random
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from matplotlib import style
 import os
-from datetime import datetime
+import pandas
+import re
+import urllib.request
+from datetime import date, datetime
+import socket, time, requests
+from bs4 import BeautifulSoup #html ve xml dosyalarını işlememizi sağlayan kütüphane
+style.use('fivethirtyeight')
+
 
 # importladığımız bazı kütüphanelerin özellikleri
 #render_template html ile kodları yazabilmemizi sağlıyor
@@ -146,4 +163,59 @@ if __name__ == "__main__":
         print("Database oluşturuldu!")
  #databasei ilk oluştururken bize mesaj yazsın istedik
     app.debug = True
-    app.run()
+
+@app.route("/doviz")
+
+def doviz():
+    if 'email' in session:
+        url = "https://www.doviz.com"
+        r = requests.get(url)
+        soup = BeautifulSoup(r.content, "html.parser")
+        data1 = soup.find("span", {"data-socket-key":"USD"}).text
+        return data1
+    return redirect(url_for('login')) 
+
+
+
+con=sqlite3.connect('kur.db')
+cur=con.cursor()
+      
+cur.execute('''CREATE TABLE IF NOT EXISTS dolar_kur (
+            dolar float, time STR
+            ) ''')
+
+time = dt.datetime.now()
+
+
+url = "https://www.doviz.com"
+r = requests.get(url)
+soup = BeautifulSoup(r.content, "html.parser")
+data1 = soup.find("span", {"data-socket-key":"USD"}).text
+print(data1)
+
+cur.execute("insert into dolar_kur values (?, ?)", [data1, str(time)])
+
+con.commit()
+
+con.close()
+
+
+
+
+
+con=sqlite3.connect(r"C:\Users\CartmanKF\Documents\GitHub\flask web app 2. deneme\kur.db")
+ 
+sql = """SELECT * FROM dolar_kur WHERE dolar"""
+ 
+data = pandas.read_sql(sql, con)
+
+#x values: data.Country,  y values: data.sum_deaths
+plt.plot(data.time,data.dolar, label = "dolar")
+plt.legend()
+plt.title("DOLAR KUR DEGISIMI")
+plt.show()
+
+
+
+
+app.run()
