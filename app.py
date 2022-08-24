@@ -1,10 +1,16 @@
+from importlib.resources import Resource
 from inspect import Parameter
+from lib2to3.pgen2.token import DOUBLESTAR
 from math import radians
 from unicodedata import name
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
+from flask_restful import Resource, Api
 from flask_sqlalchemy import SQLAlchemy
 import sqlite3
 import time
+import json
+import plotly
+import plotly.express as px
 import datetime as dt
 import matplotlib.animation as animation
 import random
@@ -12,13 +18,13 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib import style
 import os
-import pandas
+import pandas as pd
+import urllib
 import re
 import urllib.request
 from datetime import date, datetime
 import socket, time, requests
 from bs4 import BeautifulSoup #html ve xml dosyalarını işlememizi sağlayan kütüphane
-style.use('fivethirtyeight')
 
 
 # importladığımız bazı kütüphanelerin özellikleri
@@ -27,7 +33,7 @@ style.use('fivethirtyeight')
 #url_for örneğin eğer giriş yapıldıysa ana sayfaya gönder tarzında komutların bulunduğı bir kütüphane
 #flash örneğin yanlış kullanıcı adı ve şifreyle giriş yaptığımızda çıkan uyarıların güzel gözükmesini sağlayan eklentilerin olduğu bir kütüphane
 #session sayfayı yenilesek bile çıkış yapmadığımız sürece hala giriş yapılı kalmamızı sağlayan kodların olduğu kütüphane
-
+print("merhaba")
 app = Flask(__name__)
 app.secret_key = "super secret key"
 #secret key cookilerin yönetilmesinde işe yarıyor
@@ -46,6 +52,9 @@ class Users(db.Model):
     email = db.Column(db.String(100), nullable=False)
     password = db.Column(db.String(200), nullable=False)
     tasks = db.relationship('Tasks', backref='görevli')
+
+    def __repr__(self):
+        return f"{self.name} - {self.surname} - {self.email} - {self.password}"
 # tek tek ilk tablomuzdaki başlıkları girdiğimiz yer
 
     def __repr__(self):
@@ -66,6 +75,12 @@ def delete(Tasks_id):
     db.session.commit()
     return redirect(url_for("listelerim"))
 
+#web api denemesi örneğin http://10.90.14.199/?isim=volkan yazdığımızda karşımıza data: volkan olarak direkt geliyor
+
+""" @app.route("/") 
+def baslangic_api():
+    isim = request.args.get("isim")
+    return jsonify(data= isim),200   """ 
 
 @app.route("/")
 def home():
@@ -126,6 +141,9 @@ def logout():
     session.pop("email", None)
     return redirect(url_for('login'))
 
+##############################  VERİ TABANINA DIŞARDAN VERİ GİRİLMESİNİ SAĞLADIĞIMIZ KISIM  ####################################
+
+
 
 @app.route("/create", methods=["GET",  "POST"])
 def create():
@@ -153,9 +171,15 @@ def listelerim():
         return render_template('listelerim.html', me=me, tasks=tasks)
     return redirect(url_for('login'))  
 
+
+##############################  404 PAGE  ####################################
+
+
 @app.errorhandler(404)
 def error(e):
     return render_template('404.html')
+
+
 
 if __name__ == "__main__":
     if not os.path.exists(DB_NAME):
@@ -163,6 +187,11 @@ if __name__ == "__main__":
         print("Database oluşturuldu!")
  #databasei ilk oluştururken bize mesaj yazsın istedik
     app.debug = True
+
+
+
+
+##############################  DOLARIN VERİSİNİ BEAUTIFUL SOUP KULLANARAK SCRAPPLEDİĞİNMİZ VE EKRANDA GÖSTEDİĞİMİZ KISIM  ####################################
 
 @app.route("/doviz")
 
@@ -177,6 +206,10 @@ def doviz():
 
 
 
+
+##############################  DOLARIN KURUNU VE ZAMANINI VERİ TABANINA İŞLEDİĞİMİZ KISIM  ####################################
+
+
 con=sqlite3.connect('kur.db')
 cur=con.cursor()
       
@@ -185,37 +218,118 @@ cur.execute('''CREATE TABLE IF NOT EXISTS dolar_kur (
             ) ''')
 
 time = dt.datetime.now()
-
-
 url = "https://www.doviz.com"
 r = requests.get(url)
 soup = BeautifulSoup(r.content, "html.parser")
-data1 = soup.find("span", {"data-socket-key":"USD"}).text
-print(data1)
-
+data1 = soup.find("span", {"data-socket-key":"USD"}).text.replace(",", ".")
 cur.execute("insert into dolar_kur values (?, ?)", [data1, str(time)])
-
 con.commit()
-
 con.close()
+# import time as t
+# t.sleep(60) metodunu veri tabanına hangi sıklıkla veri yazıcağını belirlemek için kullanabiliriz
+print("\n\n------------------\nyenileme\n----------------\n\n")
+
+##############################          PLOTLY KULLANARAK DOLAR GRAFİĞİ ÇİZDİRDİĞİMİZ KISIM           ####################################
+
+@app.route("/index")
+def index():
+    if 'email' in session:
+        email = session['email']
+        me = Users.query.filter_by(email=email).first()
+        gid = Users.query.filter_by(email=email).first()
+        tasks = Tasks.query.filter_by(gorevli_id=gid.id)
+        con=sqlite3.connect(r"C:\Users\CartmanKF\Documents\GitHub\flask web app 2. deneme\kur.db")
+        sql = """SELECT * FROM dolar_kur WHERE dolar"""
+        df = pd.read_sql(sql, con)
+        
+        fig = px.line(df, x='time', y='dolar',line_shape='spline')
+        fig.update_traces(line=dict(color='blue', width=4), marker=dict(color='red', size=10))
+        fig.update_layout(autotypenumbers='convert types')
+        fig.update_yaxes(tickformat = ".3f", autorange='reversed')
+
+        graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+        return render_template('index.html', graphJSON=graphJSON, me=me, tasks=tasks, df=df,)
+    return redirect(url_for('login'))  
 
 
+##############################          UYGULAMA OLARAK GRAFİK ÇIKARTMA KISMI          ####################################
 
 
-
-con=sqlite3.connect(r"C:\Users\CartmanKF\Documents\GitHub\flask web app 2. deneme\kur.db")
+#con=sqlite3.connect(r"C:\Users\CartmanKF\Documents\GitHub\flask web app 2. deneme\kur.db")
  
-sql = """SELECT * FROM dolar_kur WHERE dolar"""
+#sql = """SELECT * FROM dolar_kur WHERE dolar"""
  
-data = pandas.read_sql(sql, con)
+#data = pandas.read_sql(sql, con)
 
-#x values: data.Country,  y values: data.sum_deaths
-plt.plot(data.time,data.dolar, label = "dolar")
-plt.legend()
-plt.title("DOLAR KUR DEGISIMI")
-plt.show()
+#plt.plot(data.time,data.dolar, label = "dolar")
+#plt.legend()
+#plt.title("DOLAR KUR DEGISIMI")
+#plt.show()
+#print("son")
+
+##############################          WEB SERVİCE KISMI            ####################################
+
+#for veritabanında ne var ne yok göstermek için yazdığım kod
+
+class GetUsers(Resource):
+    def get(self):
+        users = Users.query.all()
+        todolist_list = []
+        for todolist in users:
+            todolist_data = {'Id': todolist.id, 'Name': todolist.name, 
+            'Surname': todolist.surname, 'Email': todolist.email, 'Password': todolist.password}
+            todolist_list.append(todolist_data)
+        return {"Users": todolist_list}, 200
+
+#for veritabanında herhangi bir veri eklemek için yazdığım kod
+
+class AddUsers(Resource):
+    def post(self):
+        if request.is_json:
+            todolist = Users(name=request.json['Name'], surname=request.json['Surname'], email=request.json['Email'], password=request.json['Password'],)
+
+            db.session.add(todolist)
+            db.session.commit()
+            return make_response(jsonify({'Id': todolist.id, 'Name': todolist.name, 'Surname': todolist.surname, 'Email': todolist.email, 'Password': todolist.password}))
+        else:
+            return{'error': 'Request must be JSON'}, 400
+
+# veritabanındaki herhangi bir veriyi güncellemek için yazdığım kod http://localhost:5000/update/?
+class UpdateEmployee(Resource):
+    def put(self, id):
+        if request.is_json:
+            todolist = Users.query.get(id)
+            if todolist is None:
+                return {'error': 'not found'}, 404
+            else:
+                todolist.name = request.json['Name']
+                todolist.surname = request.json['Surname']
+                todolist.email = request.json['Email']
+                todolist.password = request.json['Password']
+                todolist.session.commit()
+                return 'Updated', 200
+        else:
+            return {'error': 'Request must be JSON'}, 400
+
+# veritabanındaki herhangi bir veriyi silmek için yazdığım kod http://localhost:5000/delete/?
+class DeleteEmployee(Resource):
+    def delete(self, id):
+        todolist = Users.query.get(id)
+        if todolist is None:
+            return {'error': 'not found'}, 404
+        db.session.delete(todolist)
+        db.session.commit()
+        return f'{id} is deleted', 200
+
+# / tanımladığımız classların hangi text ile çağırılacaını belirlediğimiz yer
+api = Api(app)
+api.add_resource(GetUsers, '/get')
+api.add_resource(AddUsers, '/add')
+api.add_resource(UpdateEmployee, '/update/<int:id>')
+api.add_resource(DeleteEmployee, '/delete/<int:id>')
 
 
 
+#app.run(host='0.0.0.0', port=80)
 
 app.run()

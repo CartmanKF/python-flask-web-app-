@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Grafik {% endblock %}
+
+{% block content %}
+
+<!doctype html>
+
+<section style="background-color: rgb(209, 202, 22);height: 100vh;"  >
+
+  <div class="container pt-5">
+      <div class="d-flex my-3">
+          {% if not me %} 
+          <a class="btn btn-primary" href="/login">Giriş Yap</a>
+          <a class="btn btn-secondary mx-3" href="/register">Kaydol</a>
+          {% else  %}
+          <a class="btn btn-primary" href="/">Ana Sayfa</a>
+          <a class="btn btn-danger mx-3" href="/logout">Çıkış Yap</a>
+          <a class="btn btn-secondary mx-3" href="/doviz">Dolar Kuru</a>
+          {% endif %}
+
+      </div>
+
+<html>
+  
+  
+ <body>
+  <h1>Dolar Grafiği</h1>
+  <div id='chart' class='chart'”></div>
+</body>
+<script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+<script type='text/javascript'>
+  var graphs = {{graphJSON | safe}};
+  Plotly.plot('chart',graphs,{});
+</script>
+</html>
+
+
+
+
+{% endblock %}

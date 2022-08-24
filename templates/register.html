@@ -9,11 +9,11 @@
 
 <!-- Register pagenin tasarlandığı yer-->
 
-<section style="background-color: coral;height: 100vh;"  >
+<section style="background-color: rgb(176, 7, 109);height: 100vh;"  >
     <div class="container" style="height: 100%;">
         <div class="d-flex justify-content-center align-items-center" style="height: 100%">
             <form action="" method="POST">
-                <label style="font-size: 2rem;"  for="name">Ad</label> <br>
+                <label style="font-size: 2rem;"  for="name">Ad</label> <br> 
                 <input style="font-size: 2rem;" type="text" name="name"> <br>
                 <label style="font-size: 2rem;" for="surname">Soyad</label> <br>
                 <input style="font-size: 2rem;" type="text" name="surname"> <br>
@@ -21,7 +21,8 @@
                 <input style="font-size: 2rem;" type="text" name="email"> <br>
                 <label style="font-size: 2rem;" for="password">Parola</label> <br>
                 <input style="font-size: 2rem;" type="password" name="password"> <br><br>
-                <button class="btn btn-primary" style="font-size: 2rem;" type="submit">Kaydol</button>
+                <button class="btn btn-primary mx-3" style="font-size: 2rem;" type="submit">Kaydol</button>
+                <a class="btn btn-danger mx-4" style="font-size: 2rem;" href="/login">Giriş Yap</a>
                 {% with messages = get_flashed_messages() %}
                 {% if messages %}
                 <ul class=flashes>
