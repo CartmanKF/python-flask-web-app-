@@ -67,6 +67,8 @@ class Tasks(db.Model):
      howmanydays = db.Column(db.Text, nullable=False)
      date_added = db.Column(db.DateTime, default=datetime.utcnow)
      gorevli_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+     def __repr__(self):
+        return f"{self.task} - {self.detail} - {self.howmanydays} - {self.gorevli_id}"
   #2. tabloyu oluşturduğumuz yer ayrıca foreign key olarak ilk tablodaki users idyide ekledik.
 @app.route("/delete/<int:Tasks_id>",methods=["GET"])
 def delete(Tasks_id):
@@ -169,7 +171,9 @@ def listelerim():
         gid = Users.query.filter_by(email=email).first()
         tasks = Tasks.query.filter_by(gorevli_id=gid.id)
         return render_template('listelerim.html', me=me, tasks=tasks)
-    return redirect(url_for('login'))  
+    return redirect(url_for('login')) 
+
+ 
 
 
 ##############################  404 PAGE  ####################################
@@ -205,7 +209,21 @@ def doviz():
     return redirect(url_for('login')) 
 
 
+@app.route("/snake")
 
+def snake():
+    if 'email' in session:
+        email = session['email']
+        me = Users.query.filter_by(email=email).first()
+        gid = Users.query.filter_by(email=email).first()
+        tasks = Tasks.query.filter_by(gorevli_id=gid.id)
+        return render_template('snake.html', me=me, tasks=tasks)
+    return redirect(url_for('login')) 
+
+# @app.route('/index.js')
+# def root():
+#     url_for('static', filename='index.js')
+#     return app.send_static_file('/static/index.js')
 
 ##############################  DOLARIN KURUNU VE ZAMANINI VERİ TABANINA İŞLEDİĞİMİZ KISIM  ####################################
 
@@ -281,6 +299,16 @@ class GetUsers(Resource):
             todolist_list.append(todolist_data)
         return {"Users": todolist_list}, 200
 
+class GetTasks(Resource):
+    def get(self):
+        tasks = Tasks.query.all()
+        todolist_list = []
+        for todolist in tasks:
+            todolist_data = {'Id': todolist.id, 'Task': todolist.task, 
+            'Detail': todolist.detail, 'Howmanydays': todolist.howmanydays, 'Gorevli_id': todolist.gorevli_id}
+            todolist_list.append(todolist_data)
+        return {"Tasks": todolist_list}, 200
+
 #for veritabanında herhangi bir veri eklemek için yazdığım kod
 
 class AddUsers(Resource):
@@ -294,8 +322,19 @@ class AddUsers(Resource):
         else:
             return{'error': 'Request must be JSON'}, 400
 
+class AddTasks(Resource):
+    def post(self):
+        if request.is_json:
+            todolist = Tasks(task=request.json['Task'], detail=request.json['Detail'], howmanydays=request.json['Howmanydays'], gorevl_id=request.json['Gorevli_id'],)
+
+            db.session.add(todolist)
+            db.session.commit()
+            return make_response(jsonify({'Id': todolist.id, 'Task': todolist.task, 'Detail': todolist.detail, 'Howmanydays': todolist.howmanydays, 'Gorevli_id': todolist.gorevlş_id}))
+        else:
+            return{'error': 'Request must be JSON'}, 400
+
 # veritabanındaki herhangi bir veriyi güncellemek için yazdığım kod http://localhost:5000/update/?
-class UpdateEmployee(Resource):
+class UpdateUsers(Resource):
     def put(self, id):
         if request.is_json:
             todolist = Users.query.get(id)
@@ -311,10 +350,35 @@ class UpdateEmployee(Resource):
         else:
             return {'error': 'Request must be JSON'}, 400
 
+class UpdateTasks(Resource):
+    def put(self, id):
+        if request.is_json:
+            todolist = Tasks.query.get(id)
+            if todolist is None:
+                return {'error': 'not found'}, 404
+            else:
+                todolist.task = request.json['Name']
+                todolist.detail = request.json['Surname']
+                todolist.howmanydays = request.json['Email']
+                todolist.gorevli_id = request.json['Password']
+                todolist.session.commit()
+                return 'Updated', 200
+        else:
+            return {'error': 'Request must be JSON'}, 400
+
 # veritabanındaki herhangi bir veriyi silmek için yazdığım kod http://localhost:5000/delete/?
-class DeleteEmployee(Resource):
+class DeleteUsers(Resource):
     def delete(self, id):
         todolist = Users.query.get(id)
+        if todolist is None:
+            return {'error': 'not found'}, 404
+        db.session.delete(todolist)
+        db.session.commit()
+        return f'{id} is deleted', 200
+
+class DeleteTasks(Resource):
+    def delete(self, id):
+        todolist = Tasks.query.get(id)
         if todolist is None:
             return {'error': 'not found'}, 404
         db.session.delete(todolist)
@@ -324,9 +388,13 @@ class DeleteEmployee(Resource):
 # / tanımladığımız classların hangi text ile çağırılacaını belirlediğimiz yer
 api = Api(app)
 api.add_resource(GetUsers, '/get')
+api.add_resource(GetTasks, '/gettasks')
 api.add_resource(AddUsers, '/add')
-api.add_resource(UpdateEmployee, '/update/<int:id>')
-api.add_resource(DeleteEmployee, '/delete/<int:id>')
+api.add_resource(AddTasks, '/addtasks')
+api.add_resource(UpdateUsers, '/update/<int:id>')
+api.add_resource(UpdateTasks, '/updatetasks/<int:id>')
+api.add_resource(DeleteUsers, '/delete/<int:id>')
+api.add_resource(DeleteTasks, '/deletetasks/<int:id>')
 
 
 

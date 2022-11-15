@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+
+
+<section style="height: 100vh;"  >
+
+    <div class="container pt-5">
+        <div class="d-flex my-3">
+            {% if not me %} 
+            <a class="btn btn-primary" href="/login">Giriş Yap</a>
+            <a class="btn btn-secondary mx-3" href="/register">Kaydol</a>
+            {% else  %}
+            <a class="btn btn-primary " href="/">Ana Sayfa</a>
+            <a class="btn btn-danger mx-3" href="/logout">Çıkış Yap</a>
+            <a class="btn btn-secondary mx-3" href="/doviz">Dolar Kuru</a>
+            <a class="btn btn-secondary mx-3" href="/index">Dolar Grafiği</a>
+            {% endif %}
+  
+        </div>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body{
+            margin: 0px;
+            padding: 0px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas{
+            box-shadow: black 20px 10px 50px;
+        }
+    </style>    
+</head>
+
+<body>
+    <h1>Snake</h1>
+    
+    <canvas id="game" width="400" height="400"/>
+    <script src="/static/index.js"></script>
+</body>
+</html>
